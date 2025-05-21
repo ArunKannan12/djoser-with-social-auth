@@ -2,13 +2,18 @@ from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status, generics
 from rest_framework.response import Response
 from djoser.conf import settings
-from .models import CustomUser,ActivationEmailLog
-from .serializers import ResendActivationEmailSerializer
+from .models import CustomUser,ActivationEmailLog,PasswordResetEmailLog
+
+from .serializers import (ResendActivationEmailSerializer,
+                            CustomPasswordResetSerializer,
+                            CustomPasswordResetConfirmSerializer)
+import math
 from djoser.email import ActivationEmail
 from djoser.utils import encode_uid
 from django.contrib.auth.tokens import default_token_generator
 from datetime import timedelta
 from django.utils import timezone
+from rest_framework.permissions import AllowAny
 
 class CustomActivationEmail(ActivationEmail):
     def __init__(self, user=None, *args, **kwargs):
@@ -130,3 +135,73 @@ class ResendActivationEmailView(generics.GenericAPIView):
         return Response({'detail': 'Activation email resent.'}, status=status.HTTP_200_OK)
 
     
+class CustomPasswordResetView(generics.GenericAPIView):
+    serializer_class = CustomPasswordResetSerializer
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        try:
+            user = CustomUser.objects.get(email=email)
+        except CustomUser.DoesNotExist:
+            return Response({'email': 'User with this email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+
+        now = timezone.now()
+
+        if user.blocked_until_password_reset and now < user.blocked_until_password_reset:
+            seconds_left = int((user.blocked_until_password_reset - now).total_seconds())
+            minutes_left = math.ceil(seconds_left / 60)
+            return Response(
+                {'detail': f'Too many password reset attempts. Try again after {minutes_left} minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        base_cooldown = 60
+        max_attempts = 5
+        cooldown_time = timedelta(seconds=base_cooldown * (2 ** user.block_count_password_reset))
+
+        if user.last_password_reset_sent and (now - user.last_password_reset_sent) < cooldown_time:
+            seconds_left = int((cooldown_time - (now - user.last_password_reset_sent)).total_seconds())
+            minutes_left = math.ceil(seconds_left / 60)
+            return Response(
+                {'detail': f'Please wait {minutes_left} minutes before requesting another password reset.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        if user.block_count_password_reset >= max_attempts:
+            user.blocked_until_password_reset = now + timedelta(minutes=15)
+            user.block_count_password_reset = 0
+            user.save(update_fields=['blocked_until_password_reset', 'block_count_password_reset'])
+            return Response(
+                {'detail': 'Too many attempts. Please try again after 15 minutes.'},
+                status=status.HTTP_429_TOO_MANY_REQUESTS
+            )
+
+        serializer.save()
+
+        # Update user tracking fields
+        user.last_password_reset_sent = now
+        user.block_count_password_reset += 1
+        user.save(update_fields=['last_password_reset_sent', 'block_count_password_reset'])
+
+        # Log the password reset attempt
+        PasswordResetEmailLog.objects.create(
+            user=user,
+            ip_address=request.META.get('REMOTE_ADDR'),
+            user_agent=request.META.get('HTTP_USER_AGENT')
+        )
+
+        return Response({"detail": "Password reset email sent successfully."}, status=status.HTTP_200_OK)
+
+
+class CustomPasswordResetConfirmView(generics.GenericAPIView):
+    serializer_class = CustomPasswordResetConfirmSerializer
+    permission_classes = [AllowAny]
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({"detail": "Password has been reset successfully."}, status=status.HTTP_200_OK)

@@ -40,7 +40,6 @@ ALLOWED_HOSTS = []
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -53,10 +52,10 @@ INSTALLED_APPS = [
     'djoser',
     'corsheaders',
     
+    'rest_framework_simplejwt.token_blacklist',  # ✅ Add this line
     'accounts.apps.AccountsConfig',
-
-    
 ]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -74,7 +73,7 @@ ROOT_URLCONF = 'authentication.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"], 
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -146,6 +145,8 @@ CORS_ALLOWED_ORIGINS=[
     'http://localhost:3000',
     'http://127.0.0.1:3000',
 ]
+
+
 AUTH_USER_MODEL='accounts.CustomUser'
 
 
@@ -162,7 +163,7 @@ REST_FRAMEWORK = {
 
 from datetime import timedelta
 SIMPLE_JWT = {
-    'AUTH_HEADER_TYPES': ('JWT',),
+    'AUTH_HEADER_TYPES': ('Bearer',),
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,  # Whether to rotate refresh tokens when used to obtain a new access token.
@@ -193,13 +194,15 @@ DJOSER = {
     'PASSWORD_RESET_URL': '/password/reset/',
     'TOKEN_MODEL': None,  # Use the default token model or set custom
     'SERIALIZERS': {
-        'user_create': 'accounts.serializers.UserSerializer',  # User registration serializer
-        'user_login': 'accounts.serializers.UserLoginSerializer',  # User login serializer
-        'password_reset': 'accounts.serializers.CustomPasswordResetSerializer',  # Password reset serializer
-        'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',  # Password change serializer
-        'user': 'accounts.serializers.UserSerializer',
-        'user_delete':'djoser.serializers.UserDeleteSerializer',  # User profile serializer (to fetch user data)
-    },
+    'user_create': 'accounts.serializers.UserSerializer',
+    'user_login': 'accounts.serializers.UserLoginSerializer',
+    'password_reset': 'accounts.serializers.CustomPasswordResetSerializer',
+    'password_reset_confirm': 'accounts.serializers.CustomPasswordResetConfirmSerializer',
+    'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',
+    'user': 'accounts.serializers.UserSerializer',
+    'user_delete': 'djoser.serializers.UserDeleteSerializer',
+},
+
 }
 
 

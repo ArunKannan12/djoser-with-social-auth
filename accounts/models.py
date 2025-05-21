@@ -49,6 +49,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     block_count = models.PositiveIntegerField(default=0)  # to count temporary blocks
     is_permanently_banned = models.BooleanField(default=False)
     
+    last_password_reset_sent = models.DateTimeField(null=True, blank=True)
+    blocked_until_password_reset = models.DateTimeField(null=True, blank=True)
+    block_count_password_reset = models.PositiveIntegerField(default=0)
+
+
     objects = CustomUserManager()
 
     USERNAME_FIELD = 'email'
@@ -75,3 +80,18 @@ class ActivationEmailLog(models.Model):
         indexes = [
             models.Index(fields=["user", "sent_at"]),
         ]
+
+
+
+
+class PasswordResetEmailLog(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='password_reset_logs')
+    sent_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-sent_at']
+
+    def __str__(self):
+        return f"Password reset email sent to {self.user.email} at {self.sent_at}"
