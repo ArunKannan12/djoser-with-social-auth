@@ -6,7 +6,9 @@ from .models import CustomUser,ActivationEmailLog,PasswordResetEmailLog
 
 from .serializers import (ResendActivationEmailSerializer,
                             CustomPasswordResetSerializer,
-                            CustomPasswordResetConfirmSerializer)
+                            CustomPasswordResetConfirmSerializer,
+                            FacebookLoginSerializer
+                            )
 import math
 from djoser.email import ActivationEmail
 from djoser.utils import encode_uid
@@ -14,6 +16,21 @@ from django.contrib.auth.tokens import default_token_generator
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework.permissions import AllowAny
+from django.contrib.auth import get_user_model
+from google.auth.transport.requests import Request
+from google.oauth2 import id_token
+from rest_framework.generics import GenericAPIView
+
+import requests
+from rest_framework.views import APIView
+from django.http import JsonResponse
+from rest_framework_simplejwt.tokens import RefreshToken
+from django.conf import settings
+
+
+
+
+User = get_user_model()
 
 class CustomActivationEmail(ActivationEmail):
     def __init__(self, user=None, *args, **kwargs):
@@ -205,3 +222,154 @@ class CustomPasswordResetConfirmView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response({"detail": "Password has been reset successfully."}, status=status.HTTP_200_OK)
+
+
+class GoogleAuthView(APIView):
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        # Get the ID token sent from frontend
+        id_token_str = request.data.get('id_token')
+        
+        if not id_token_str:
+            return JsonResponse({'error': 'ID Token is required'}, status=400)
+
+        try:
+            # Verify the ID token with Google
+            idinfo = id_token.verify_oauth2_token(id_token_str, Request(), settings.SOCIAL_AUTH_GOOGLE_OAUTH2_KEY)
+            
+            # ID token verification passed, check the user's email or other data
+            email = idinfo.get('email')
+            first_name = idinfo.get('given_name', 'Google')
+            last_name = idinfo.get('family_name', '')
+            full_name = idinfo.get('name', f"{first_name} {last_name}")
+            picture_url = idinfo.get('picture')
+
+            if email is None:
+                return JsonResponse({'error': 'Invalid ID Token'}, status=400)
+            
+            # Find or create the user in your database (you can use email to find the user)
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'is_verified': True,
+                    'is_active': True,
+                    'auth_provider': 'google',
+                    'social_auth_pro_pic':picture_url
+                }
+            )
+            
+
+            if picture_url and user.social_auth_pro_pic != picture_url:
+                user.social_auth_pro_pic = picture_url
+                user.save()
+            # Create JWT token (access + refresh)
+            refresh = RefreshToken.for_user(user)
+            
+            # Return tokens and user data to frontend
+            return JsonResponse({
+                'access_token': str(refresh.access_token),
+                'refresh_token': str(refresh),
+                'email': user.email,
+                'full_name': user.get_full_name(),
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'social_auth_pro_pic': user.social_auth_pro_pic,
+                'auth_provider': user.auth_provider,
+                'is_new_user': created,
+                'is_staff': user.is_staff,
+                'is_superuser': user.is_superuser,
+                'message': 'Google authentication successful'
+            }, status=200)
+
+        except ValueError:
+            # Raised if the token is invalid
+            return JsonResponse({'error': 'Invalid ID token'}, status=400)
+
+
+
+User=get_user_model()
+class facebookLoginView(GenericAPIView):
+    serializer_class = FacebookLoginSerializer
+
+    permission_classes = [AllowAny]
+    def post(self,request,*args,**kwargs):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        access_token = serializer.validated_data.get('access_token')
+
+
+        fb_response = requests.get(
+            'https://graph.facebook.com/me',
+            params={
+                'fields':'id,name,email',
+                'access_token':access_token
+            }
+        )
+        if fb_response.status_code != 200:
+            return Response({'error':'invalid facebook token'},status=status.HTTP_400_BAD_REQUEST)
+        
+
+        fb_data = fb_response.json()
+
+        email = fb_data.get('email')
+
+        name = fb_data.get('name','')
+
+        user_id = fb_data.get('id')
+
+        if not email:
+            return Response({'error':'facebook account must provide an email'},status=status.HTTP_400_BAD_REQUEST)
+        
+        first_name = name.split(' ')[0]
+
+        last_name = ' '.join(name.split(' ')[1:]) if len (name.split(' ')) > 1 else ''
+
+        pic_response = requests.get(
+            f"https://graph.facebook.com/v19.0/{user_id}/picture",
+            params={
+                "access_token":access_token,
+                "redirect":False,
+                "type":"large",
+
+            }
+        )
+        profile_picture=None
+        if pic_response.status_code == 200:
+            social_auth_pro_pic = pic_response.json().get("data", {}).get("url")
+
+        user, created =User.objects.get_or_create(email=email,defaults={
+            'first_name':first_name,
+            'last_name':last_name,
+            'is_verified':True,
+            'is_active':True,
+            'auth_provider':'facebook',
+            'social_auth_pro_pic':social_auth_pro_pic
+        })
+
+        if not created:
+            user.first_name = first_name
+            user.last_name = last_name
+            user.auth_provider = 'facebook'
+            if profile_picture:
+                user.s = profile_picture
+            user.save()
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            'access_token': str(refresh.access_token),
+            'refresh_token': str(refresh),
+            'email': user.email,
+            'full_name': user.get_full_name(),
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'auth_provider': 'facebook',
+            'is_new_user': created,  # If `created` is from get_or_create()
+            'is_staff': user.is_staff,
+            'is_superuser': user.is_superuser,
+            'profile_picture': user.social_auth_pro_pic,
+            'message': 'Facebook authentication successful'
+        }, status=status.HTTP_200_OK)

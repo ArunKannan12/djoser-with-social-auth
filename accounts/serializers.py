@@ -88,3 +88,15 @@ class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
         self.user.set_password(password)
         self.user.save()
         return self.user
+    
+
+
+class FacebookLoginSerializer(serializers.Serializer):
+    access_token = serializers.CharField(write_only=True)
+
+
+    def validate_access_token(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError('Access token is required')
+
+        return value

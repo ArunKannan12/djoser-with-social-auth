@@ -1,6 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
+
+AUTH_PROVIDERS = {
+    'email': 'Email',
+    'google': 'Google',
+    'facebook': 'Facebook',
+    'github': 'GitHub',
+}
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, first_name, last_name, password=None, **extra_fields):
         if not email:
@@ -30,6 +38,11 @@ class CustomUserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True')
 
         return self.create_user(email, first_name, last_name, password, **extra_fields)
+    
+
+def user_profile_upload_path(instance, filename):
+    return f'profile_pics/{instance.email}/{filename}'
+
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
@@ -44,6 +57,9 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    social_auth_pro_pic=models.URLField(blank=True,null=True)
+    custom_user_profile=models.ImageField( upload_to=user_profile_upload_path,blank=True,null=True)
+    
     last_activation_email_sent = models.DateTimeField(null=True, blank=True)
     blocked_until = models.DateTimeField(null=True, blank=True)
     block_count = models.PositiveIntegerField(default=0)  # to count temporary blocks
@@ -53,6 +69,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     blocked_until_password_reset = models.DateTimeField(null=True, blank=True)
     block_count_password_reset = models.PositiveIntegerField(default=0)
 
+    auth_provider=models.CharField( max_length=50,default=AUTH_PROVIDERS.get("email"))
 
     objects = CustomUserManager()
 
