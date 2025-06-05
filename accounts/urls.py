@@ -3,9 +3,12 @@ from .views import (ResendActivationEmailView,
                     CustomPasswordResetConfirmView,
                     CustomPasswordResetView,
                     GoogleAuthView,
-                    facebookLoginView
+                    facebookLoginView,
+                   sample
                     
                     )
+from rest_framework_simplejwt.views import TokenBlacklistView
+
 
 urlpatterns = [
     path('auth/', include('djoser.urls')),
@@ -13,10 +16,14 @@ urlpatterns = [
 
     path('auth/password_reset/', CustomPasswordResetView.as_view(), name='password_reset'),
     path('auth/password_reset_confirm/', CustomPasswordResetConfirmView.as_view(), name='password_reset_confirm'),
+    path('auth/jwt/logout/', TokenBlacklistView.as_view(), name='jwt_logout'),
 
-    path('auth/resend-activation/', ResendActivationEmailView.as_view(), name='resend-activation'),
+    path('auth/resend-activation/', ResendActivationEmailView.as_view(), name='resend_activation'),
     path('auth/social/google/',GoogleAuthView.as_view(),name='google-login'),
     path('auth/social/facebook/',facebookLoginView.as_view(),name='facebook-login'),
+
+    path("auth/email/activation/", sample, name="email-activation"),
+
     
 ]
 

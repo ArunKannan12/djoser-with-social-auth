@@ -36,7 +36,8 @@ SECRET_KEY = env('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+
 
 
 # Application definition
@@ -73,7 +74,8 @@ ROOT_URLCONF = 'authentication.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / "templates"], 
+        'DIRS': [BASE_DIR / "templates"],
+
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -143,8 +145,8 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 CORS_ALLOWED_ORIGINS=[
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
 ]
 
 
@@ -167,44 +169,60 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    'ROTATE_REFRESH_TOKENS': True,  # Whether to rotate refresh tokens when used to obtain a new access token.
-    'UPDATE_LAST_LOGIN':False,
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,  # ✅ Required for logout to work
+    'UPDATE_LAST_LOGIN': False,
 }
+
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com' 
+# EMAIL_PORT = 587
+# EMAIL_HOST_USER = '1701arunkannan@gmail.com'
+# EMAIL_HOST_PASSWORD = 'uohs pqmr yttu uazt'
+# EMAIL_USE_TLS = True
+# DEFAULT_FROM_EMAIL = '1701arunkannan@gmail.com'
+
 
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'localhost'
 EMAIL_PORT = 1025
-EMAIL_HOST_USER = ''
+EMAIL_HOST_USER = ''  # MailHog doesn't require authentication
 EMAIL_HOST_PASSWORD = ''
-EMAIL_USE_TLS = False
+EMAIL_USE_TLS = False  # TLS is not needed for MailHog
+DEFAULT_FROM_EMAIL = 'no-reply@localhost'
+
+FRONTEND_URL = "http://localhost:5173"
 
 
 DJOSER = {
-    'LOGIN_FIELD': 'email',               # Set to 'email' if you are using email for login
-    'USER_CREATE_PASSWORD_RETYPE': True,  # Ensure the user has to retype password on registration
-    'ACTIVATION_URL': '/activation/{uid}/{token}/',  # URL for user account activation
-    'SEND_ACTIVATION_EMAIL': True,        # Send an activation email on user registration
-    'SEND_CONFIRMATION_EMAIL': True,  
-    'PASSWORD_CHANGED_EMAIL_CONFIRMATION':True,   # Set to true if you want confirmation emails on registration
+    'LOGIN_FIELD': 'email',
+    "EMAIL_FRONTEND_SITE_NAME": 'auth',
+    'ACTIVATION_URL': 'activate/{uid}/{token}/',
+    'SEND_CONFIRMATION_EMAIL': True,
+    "EMAIL": {
+        "activation": "accounts.email.CustomActivationEmail",
+        "resend_activation": "accounts.email.CustomResendActivationEmail",
+    },
+    'SEND_ACTIVATION_EMAIL': True,
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    'PASSWORD_CHANGED_EMAIL_CONFIRMATION': True,
     'PASSWORD_RESET_CONFIRM_URL': '/password-reset/confirm/{uid}/{token}/',
-    'SET_PASSWORD_RETYPE':True,
-    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND':True,
-    'TOKEN_MODEL':None,
-    'USER_LOGIN_PASSWORD_RESET': True,    # Allow login through email (if email is provided)
-    'USER_ID_FIELD': 'email',             # Use email as the unique identifier (if not the default)
+    'SET_PASSWORD_RETYPE': True,
+    'PASSWORD_RESET_SHOW_EMAIL_NOT_FOUND': True,
+    'USER_LOGIN_PASSWORD_RESET': True,
+    'USER_ID_FIELD': 'email',
     'PASSWORD_RESET_URL': '/password/reset/',
-    'TOKEN_MODEL': None,  # Use the default token model or set custom
     'SERIALIZERS': {
-    'user_create': 'accounts.serializers.UserSerializer',
-    'user_login': 'accounts.serializers.UserLoginSerializer',
-    'password_reset': 'accounts.serializers.CustomPasswordResetSerializer',
-    'password_reset_confirm': 'accounts.serializers.CustomPasswordResetConfirmSerializer',
-    'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',
-    'user': 'accounts.serializers.UserSerializer',
-    'user_delete': 'djoser.serializers.UserDeleteSerializer',
-},
-
+        'user_create': 'accounts.serializers.UserSerializer',
+        'user_login': 'accounts.serializers.UserLoginSerializer',
+        'password_reset': 'accounts.serializers.CustomPasswordResetSerializer',
+        'password_reset_confirm': 'accounts.serializers.CustomPasswordResetConfirmSerializer',
+        'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',
+        'user': 'accounts.serializers.UserSerializer',
+        'user_delete': 'djoser.serializers.UserDeleteSerializer',
+    },
 }
+
 
 
 SITE_ID = 1
@@ -219,8 +237,7 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=env("SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET")
 SOCIAL_AUTH_GOOGLE_OAUTH2_REDIRECT_URI = 'http://localhost:8000/auth/complete/google-oauth2/'
 
 AUTHENTICATION_BACKENDS = [
-    'social_core.backends.google.GoogleOAuth2',  # Google OAuth2 backend
-    'social_core.backends.facebook.FacebookOAuth2',
+    
     'django.contrib.auth.backends.ModelBackend',  # Default authentication
 ]
 
@@ -256,3 +273,4 @@ SOCIAL_AUTH_FACEBOOK_PROFILE_EXTRA_PARAMS = {
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+

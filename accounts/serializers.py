@@ -7,7 +7,7 @@ from django.utils.encoding import force_bytes,force_str
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
-
+from djoser.email import ActivationEmail
 
 User=get_user_model()
 print(User)
@@ -17,7 +17,15 @@ class UserSerializer(UserCreateSerializer):
         model = CustomUser
         fields = ['id', 'email', 'first_name', 'last_name', 'password']
         extra_kwargs = {'password': {'write_only': True}}
+        
+    def create(self, validated_data):
+        user = super().create(validated_data)
+        request = self.context.get("request")
 
+        # 🔥 Send custom activation email manually
+        ActivationEmail(request, context={"user": user}).send(to=[user.email])
+
+        return user
 
 class ResendActivationEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -1,7 +1,7 @@
 from django.contrib.sites.shortcuts import get_current_site
 from rest_framework import status, generics
 from rest_framework.response import Response
-from djoser.conf import settings
+from django.conf import settings
 from .models import CustomUser,ActivationEmailLog,PasswordResetEmailLog
 
 from .serializers import (ResendActivationEmailSerializer,
@@ -26,21 +26,22 @@ from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
-
+from djoser.views import UserViewSet
+from accounts.email import CustomActivationEmail
 
 
 
 User = get_user_model()
 
-class CustomActivationEmail(ActivationEmail):
-    def __init__(self, user=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.user = user or kwargs.get('context', {}).get('user')  # Ensure user is set early
+# class CustomActivationEmail(ActivationEmail):
+#     def __init__(self, user=None, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.user = user or kwargs.get('context', {}).get('user')  # Ensure user is set early
 
-    def get_context_data(self):
-        context = super().get_context_data()
-        context['user'] = self.user
-        return context
+#     def get_context_data(self):
+#         context = super().get_context_data()
+#         context['user'] = self.user
+#         return context
 
 
 class ResendActivationEmailView(generics.GenericAPIView):
@@ -130,16 +131,20 @@ class ResendActivationEmailView(generics.GenericAPIView):
         # Send activation email
         token = default_token_generator.make_token(user)
         context = {
-            'user': user,
-            'uid': encode_uid(user.pk),
-            'token': token,
-            'site': get_current_site(request),
-            'activation_url': settings.ACTIVATION_URL,
+            "user": user,
+            "uid": encode_uid(user.pk),
+            "token": token,
+            "site": get_current_site(request),
+            "activation_url": f"{settings.FRONTEND_URL.rstrip('/')}/activation/{encode_uid(user.pk)}/{token}/",
         }
 
-        activation_email = CustomActivationEmail(context=context)
+        activation_email = CustomActivationEmail(
+            request,
+            context=context,
+            user=user,
+        )
         activation_email.send(to=[user.email])
-
+       
         user.last_activation_email_sent = now
         user.save(update_fields=['last_activation_email_sent'])
 
@@ -373,3 +378,10 @@ class facebookLoginView(GenericAPIView):
             'profile_picture': user.social_auth_pro_pic,
             'message': 'Facebook authentication successful'
         }, status=status.HTTP_200_OK)
+
+
+from django.shortcuts import render
+
+    
+def sample(request):
+    return render(request,'emails/activation.html')
