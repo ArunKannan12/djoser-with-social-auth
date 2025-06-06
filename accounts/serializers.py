@@ -8,24 +8,81 @@ from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from djoser.email import ActivationEmail
+from django.contrib.auth.password_validation import validate_password
 
 User=get_user_model()
-print(User)
 
-class UserSerializer(UserCreateSerializer):
-    class Meta(UserCreateSerializer.Meta):
+class UserSerializer(serializers.ModelSerializer):
+    custom_user_profile = serializers.ImageField(required=False, allow_null=True)
+    password = serializers.CharField(write_only=True, required=False)
+
+    class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
-        
-    def create(self, validated_data):
-        user = super().create(validated_data)
-        request = self.context.get("request")
+        fields = ['id', 'email', 'first_name', 'last_name', 'password', 'custom_user_profile']
 
-        # 🔥 Send custom activation email manually
+    def validate(self, attrs):
+        password = attrs.get('password', None)
+
+        # Validate password only if it's provided
+        if password:
+            user = self.instance or CustomUser(email=attrs.get('email', 'example@example.com'))
+            validate_password(password, user)
+
+        return attrs
+
+    def create(self, validated_data):
+        password = validated_data.pop('password', None)
+        profile_pic = validated_data.pop('custom_user_profile', None)
+
+        user = CustomUser(**validated_data)
+
+        if password:
+            user.set_password(password)
+        else:
+            user.set_unusable_password()
+
+        if profile_pic:
+            user.custom_user_profile = profile_pic
+
+        user.save()
+
+        # Optional: Send custom activation email
+        request = self.context.get("request")
+        from djoser.email import ActivationEmail
         ActivationEmail(request, context={"user": user}).send(to=[user.email])
 
         return user
+
+    def update(self, instance, validated_data):
+        user = self.context['request'].user
+        provider = getattr(user, 'auth_provider','email')
+        password = validated_data.pop('password', None)
+        custom_user_profile = validated_data.pop('custom_user_profile', None)
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        if custom_user_profile == None:
+            if instance.custom_user_profile:
+                instance.custom_user_profile.delete(save=False)
+            instance.custom_user_profile = None
+        elif custom_user_profile != 'not_provided':
+            instance.custom_user_profile = custom_user_profile
+            
+        if password:
+            instance.set_password(password)
+        
+        if provider != 'email' and 'custom_user_profile' in validated_data:
+            raise serializers.ValidationError("profile picture caan only be updated by email-authenticated users")
+
+        instance.save()
+        return instance
+    
+    def get_custom_user_profile(self, obj):
+        request = self.context.get('request')
+        if obj.custom_user_profile and hasattr(obj.custom_user_profile, 'url'):
+            return request.build_absolute_uri(obj.custom_user_profile.url)
+        return None
 
 class ResendActivationEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()

@@ -167,7 +167,7 @@ REST_FRAMEWORK = {
 from datetime import timedelta
 SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=10),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,  # ✅ Required for logout to work
@@ -220,6 +220,7 @@ DJOSER = {
         'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',
         'user': 'accounts.serializers.UserSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer',
+        'current_user': 'accounts.serializers.UserSerializer'
     },
 }
 

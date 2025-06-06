@@ -28,7 +28,8 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
 from djoser.views import UserViewSet
 from accounts.email import CustomActivationEmail
-
+from rest_framework_simplejwt.views import TokenRefreshView
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 
 User = get_user_model()
@@ -380,8 +381,22 @@ class facebookLoginView(GenericAPIView):
         }, status=status.HTTP_200_OK)
 
 
-from django.shortcuts import render
+class CustomTokenRefreshView(TokenRefreshView):
+    """
+    Custom refresh view to ensure new refresh token is returned.
+    """
+    serializer_class = TokenRefreshSerializer
 
-    
-def sample(request):
-    return render(request,'emails/activation.html')
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+
+        # If a new refresh token was set, include it in the response
+        if (
+            hasattr(request, "auth") and 
+            hasattr(request.auth, "token") and 
+            "refresh" not in response.data and 
+            "refresh" in request.data
+        ):
+            response.data["refresh"] = request.data["refresh"]
+
+        return response
