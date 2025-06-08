@@ -1,4 +1,4 @@
-from djoser.serializers import UserCreateSerializer,PasswordResetConfirmSerializer
+from djoser.serializers import PasswordResetConfirmSerializer
 from .models import CustomUser
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
@@ -9,25 +9,28 @@ from django.template.loader import render_to_string
 from django.core.mail import send_mail
 from djoser.email import ActivationEmail
 from django.contrib.auth.password_validation import validate_password
+import json
 
 User=get_user_model()
 
 class UserSerializer(serializers.ModelSerializer):
     custom_user_profile = serializers.ImageField(required=False, allow_null=True)
     password = serializers.CharField(write_only=True, required=False)
-
     class Meta:
         model = CustomUser
-        fields = ['id', 'email', 'first_name', 'last_name', 'password', 'custom_user_profile']
-
+        fields = [
+            'id', 'email', 'first_name', 'last_name', 'password',
+            'custom_user_profile', 'social_auth_pro_pic',
+            'phone_number', 'address', 'pincode',
+            'district', 'city', 'state'
+        ]
+        read_only_fields = ['id', 'email', 'social_auth_pro_pic'] 
+    
     def validate(self, attrs):
-        password = attrs.get('password', None)
-
-        # Validate password only if it's provided
+        password = attrs.get('password')
         if password:
             user = self.instance or CustomUser(email=attrs.get('email', 'example@example.com'))
             validate_password(password, user)
-
         return attrs
 
     def create(self, validated_data):
@@ -55,35 +58,38 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         user = self.context['request'].user
-        provider = getattr(user, 'auth_provider','email')
-        password = validated_data.pop('password', None)
-        custom_user_profile = validated_data.pop('custom_user_profile', None)
+        provider = getattr(user, 'auth_provider', 'email')
 
+        password = validated_data.pop('password', None)
+        profile_pic = validated_data.pop('custom_user_profile', None)
+
+        # Update normal fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
-        if custom_user_profile == None:
-            if instance.custom_user_profile:
-                instance.custom_user_profile.delete(save=False)
-            instance.custom_user_profile = None
-        elif custom_user_profile != 'not_provided':
-            instance.custom_user_profile = custom_user_profile
-            
+        # Handle profile picture update only if provided in payload
+        if profile_pic is not None:
+            # Delete old pic if exists and new pic is None (means delete)
+            if profile_pic == '' or profile_pic is None:
+                if instance.custom_user_profile:
+                    instance.custom_user_profile.delete(save=False)
+                instance.custom_user_profile = None
+            else:
+                # Update profile pic if user signed up with email only
+                if provider != 'email':
+                    raise serializers.ValidationError(
+                        "Profile picture can only be updated by users who signed up with email."
+                    )
+                instance.custom_user_profile = profile_pic
+
+        # Update password if provided
         if password:
             instance.set_password(password)
-        
-        if provider != 'email' and 'custom_user_profile' in validated_data:
-            raise serializers.ValidationError("profile picture caan only be updated by email-authenticated users")
 
         instance.save()
         return instance
-    
-    def get_custom_user_profile(self, obj):
-        request = self.context.get('request')
-        if obj.custom_user_profile and hasattr(obj.custom_user_profile, 'url'):
-            return request.build_absolute_uri(obj.custom_user_profile.url)
-        return None
 
+    
 class ResendActivationEmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
 

@@ -1,228 +1,223 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import {jwtDecode} from 'jwt-decode';
-import { Modal, Button } from 'react-bootstrap';
-import { FaPen } from 'react-icons/fa';
 import axiosInstance from '../utils/axiosInstance';
+import { toast } from 'react-toastify';
+import { FaPen } from 'react-icons/fa';
+import ProfileEditModal from './ProfileEditModal';
+import {
+  Container,
+  Row,
+  Col,
+  Button,
+  Image,
+  Spinner,
+  Collapse,
+} from 'react-bootstrap';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
-  const [imageFile, setImageFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
+  const [backLoading, setBackLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
   const navigate = useNavigate();
 
   useEffect(() => {
-  const fetchProfile = async () => {
-   
-    try {
-      const res = await axiosInstance.get('auth/users/me/');
-      setUser(res.data);
-    } catch (error) {
-      console.error('Error during token refresh or profile fetch:', error);
-      localStorage.clear();
-      navigate('/login');
-    }
-  };
-
- fetchProfile();
-}, [navigate]);
-
+    const fetchProfile = async () => {
+      try {
+        const res = await axiosInstance.get('auth/users/me/');
+        setUser(res.data);
+      } catch (error) {
+        console.error('Profile fetch failed:', error);
+        localStorage.clear();
+        navigate('/login');
+      }
+    };
+    fetchProfile();
+  }, [navigate]);
 
   const handleLogout = async () => {
-   
-    const refresh = localStorage.getItem('refresh');
-
     try {
-      await axiosInstance.post('auth/jwt/logout/',{ refresh });
+      const refresh = localStorage.getItem('refresh');
+      await axiosInstance.post('auth/jwt/logout/', { refresh });
     } catch {
-      localStorage.clear();
-      toast.info('Logged out successfully');
-      navigate('/login');
+      // ignore
     }
+    localStorage.clear();
+    toast.info('Logged out successfully');
+    navigate('/');
   };
-
-  const onFileChange = (e) => {
-    if (e.target.files.length > 0) setImageFile(e.target.files[0]);
-  };
-
-  const uploadProfilePicture = async () => {
-    if (!imageFile) return toast.warning('Please select an image.');
-    setUploading(true);
-    const formData = new FormData();
-    formData.append('custom_user_profile', imageFile);
-
-    try {
-      const res = await axiosInstance.patch('auth/users/me/', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setUser(res.data);
-      toast.success('Profile picture updated!');
-      setImageFile(null);
-      setShowModal(false);
-    } catch (err) {
-      toast.error('Failed to upload picture.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const deleteProfilePicture = async () => {
-    try {
-      const res = await axiosInstance.patch(
-        'auth/users/me/',
-        { custom_user_profile: null },
-        {
-          headers: { 'Content-Type': 'application/json' }, // content-type override is fine here
-        }
-      );
-      setUser(res.data);
-      toast.success('Profile picture deleted.');
-      setShowDeleteConfirm(false);
-      setShowModal(false);
-    } catch (err) {
-      toast.error('Delete failed.');
-      setShowDeleteConfirm(false);
-    }
-};
-
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
+  if (!user) {
+    return (
+      <div className="d-flex justify-content-center align-items-center vh-100">
+        <Spinner animation="border" variant="primary" />
+        <span className="ms-2">Loading profile...</span>
+      </div>
+    );
+  }
+
+  const profilePic =
+    user.custom_user_profile ||
+    user.social_auth_pro_pic ||
+    'https://cdn-icons-png.flaticon.com/512/149/149071.png';
+
+  const handleBackClick = () => {
+    setBackLoading(true);
+    setTimeout(() => {
+      navigate('/reset-password');
+    },500); // Optional delay for spinner effect
+  };
+
   return (
     <>
-      <div className="d-flex">
+      <Container fluid className="vh-100 d-flex flex-column flex-md-row p-0">
         {/* Sidebar */}
         <div
-          className="bg-light border-end vh-100"
-          style={{
-            width: sidebarOpen ? '250px' : '60px',
-            transition: 'width 0.3s ease',
-            overflow: 'hidden',
-          }}
+          className={`bg-white border-end d-flex flex-column align-items-center p-3 ${
+            sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'
+          }`}
+          style={{ transition: 'width 0.3s ease' }}
         >
-          <div className="p-3">
-            <button
-              className="btn btn-sm btn-outline-secondary mb-3"
-              onClick={toggleSidebar}
-              title="Toggle Sidebar"
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={toggleSidebar}
+            className="mb-3 w-100"
+            aria-label="Toggle sidebar"
+          >
+            &#9776;
+          </Button>
+
+          <div
+            className="position-relative mb-3"
+            style={{ cursor: 'pointer', width: sidebarOpen ? 120 : 50, height: sidebarOpen ? 120 : 50 }}
+            onClick={() => setShowModal(true)}
+            title="Edit Profile"
+          >
+            <Image
+              src={profilePic}
+              roundedCircle
+              fluid
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+            <div
+              className="position-absolute bg-primary text-white d-flex justify-content-center align-items-center"
+              style={{
+                width: sidebarOpen ? 32 : 20,
+                height: sidebarOpen ? 32 : 20,
+                borderRadius: '50%',
+                bottom: 8,
+                right: 8,
+                boxShadow: '0 0 6px rgba(0,0,0,0.15)',
+              }}
             >
-              &#9776;
-            </button>
-
-            {sidebarOpen && user && (
-              <>
-                <div className="text-center mb-2 position-relative">
-                  <img
-                    src={
-                      user.custom_user_profile
-                        ? user.custom_user_profile
-                        : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
-                    }
-                    alt="Profile"
-                    style={{ width: 100, height: 100, borderRadius: '50%' }}
-                  />
-                  <button
-                    className="btn btn-sm btn-light position-absolute"
-                    style={{ bottom: 0, right: '35%', borderRadius: '50%' }}
-                    onClick={() => setShowModal(true)}
-                    title="Edit Picture"
-                  >
-                    <FaPen size={12} />
-                  </button>
-                </div>
-                <h6 className="text-center">
-                  {user.first_name} {user.last_name}
-                </h6>
-                <hr />
-
-                <button className="btn btn-dark w-100 mt-2" onClick={handleLogout}>
-                  Logout
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Profile Display */}
-        <div className="flex-grow-1 p-4">
-          <h3 className="mb-4">Profile Details</h3>
-          {user ? (
-            <div className="card shadow p-4">
-              <div className="mb-3 text-center">
-                <img
-                  src={
-                    user.custom_user_profile
-                      ? user.custom_user_profile
-                      : 'https://cdn-icons-png.flaticon.com/512/149/149071.png'
-                  }
-                  alt="Profile"
-                  style={{ width: 150, height: 150, borderRadius: '50%', objectFit: 'cover' }}
-                />
-              </div>
-              <p>
-                <strong>First Name:</strong> {user.first_name}
-              </p>
-              <p>
-                <strong>Last Name:</strong> {user.last_name}
-              </p>
-              <p>
-                <strong>Email:</strong> {user.email}
-              </p>
+              <FaPen size={sidebarOpen ? 16 : 12} />
             </div>
-          ) : (
-            <p>Loading profile...</p>
-          )}
+          </div>
+
+          <Collapse in={sidebarOpen}>
+            <div className="text-center w-100">
+              <h5 className="mb-0">{user.first_name} {user.last_name}</h5>
+              <small className="text-muted d-block mb-3">{user.email}</small>
+                <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={handleBackClick}
+            className="mb-2 w-75 "
+            disabled={backLoading}
+          >
+            {backLoading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" /> Just a sec...
+              </>
+            ) : (
+              'Forgot Password'
+            )}
+          </Button>
+
+                             
+              <Button
+                variant="danger"
+                size="sm"
+                className="w-75"
+                onClick={handleLogout}
+              >
+                Logout
+              </Button>
+            </div>
+          </Collapse>
         </div>
-      </div>
 
-      {/* Modal for Edit Profile Picture */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Edit Profile Picture</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={onFileChange}
-            className="form-control mb-3"
-          />
-          <Button variant="primary" onClick={uploadProfilePicture} disabled={uploading} className="me-2">
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
+        {/* Main content */}
+        <main className="flex-grow-1 overflow-auto p-4" style={{ backgroundColor: '#f8f9fa' }}>
+          <h2 className="mb-4 text-primary fw-bold">Profile Details</h2>
+          <div
+            className="bg-white rounded shadow-sm p-4 mx-auto"
+            style={{ maxWidth: 650 }}
+          >
+            <div className="text-center mb-4">
+              <Image
+                src={profilePic}
+                roundedCircle
+                style={{ width: 160, height: 160, objectFit: 'cover', border: '4px solid #0d6efd' }}
+              />
+            </div>
 
-          {/* Delete button shown only if user has a profile picture */}
-          {user?.custom_user_profile && (
-            <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>
-              Delete Picture
-            </Button>
-          )}
-        </Modal.Body>
-      </Modal>
+            <Row xs={1} md={2} className="g-3">
+              {[
+                ['First Name', user.first_name],
+                ['Last Name', user.last_name],
+                ['Email', user.email],
+                ['Phone', user.phone_number || '—'],
+                ['City', user.city || '—'],
+                ['District', user.district || '—'],
+                ['State', user.state || '—'],
+                ['PIN Code', user.pincode || '—'],
+              ].map(([label, value]) => (
+                <Col key={label}>
+                  <p className="mb-1 fw-semibold text-muted">{label}</p>
+                  <p className="mb-0 fs-5">{value}</p>
+                </Col>
+              ))}
+            </Row>
+          </div>
+        </main>
+      </Container>
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteConfirm} onHide={() => setShowDeleteConfirm(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>Are you sure you want to delete your profile picture?</Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={deleteProfilePicture}>
-            Delete
-          </Button>
-        </Modal.Footer>
-      </Modal>
+      <ProfileEditModal
+        show={showModal}
+        onHide={() => setShowModal(false)}
+        user={user}
+        setUser={setUser}
+      />
+
+      <style jsx="true">{`
+        .sidebar-expanded {
+          width: 280px;
+        }
+        .sidebar-collapsed {
+          width: 70px;
+        }
+
+        @media (max-width: 767.98px) {
+          .sidebar-expanded,
+          .sidebar-collapsed {
+            width: 100% !important;
+            flex-direction: row !important;
+            border-right: none !important;
+            border-bottom: 1px solid #ddd !important;
+            padding: 0.5rem 1rem !important;
+            align-items: center !important;
+            height: auto !important;
+          }
+
+          main {
+            padding: 1rem !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

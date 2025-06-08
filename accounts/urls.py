@@ -4,7 +4,8 @@ from .views import (ResendActivationEmailView,
                     CustomPasswordResetView,
                     GoogleAuthView,
                     facebookLoginView,
-                    CustomTokenRefreshView                    
+                    CustomTokenRefreshView,
+                                       
                     )
 from rest_framework_simplejwt.views import TokenBlacklistView
 

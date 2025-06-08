@@ -1,12 +1,13 @@
 import React, { useState,useEffect } from 'react'
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { toast } from 'react-toastify';
-import { useNavigate } from 'react-router-dom';
+import { Form, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {jwtDecode} from 'jwt-decode';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
+  const [rememberMe,setRememberMe] = useState(false)
   const navigate = useNavigate();
 
     useEffect(() => {
@@ -24,11 +25,15 @@ const Login = () => {
           // Token expired — optionally clear it
           localStorage.removeItem('access');
           localStorage.removeItem('refresh');
+          sessionStorage.removeItem('access')
+          sessionStorage.removeItem('refresh')
         }
         } catch (error) {
           console.error('Invalid token:', error);
           localStorage.removeItem('access');
           localStorage.removeItem('refresh');
+          sessionStorage.removeItem('access')
+          sessionStorage.removeItem('refresh')
         }
       }
     
@@ -49,9 +54,16 @@ const Login = () => {
         const response = await axios.post("http://localhost:8000/api/auth/jwt/create/",loginData)
         
         const {access,refresh} = response.data
-        
-        localStorage.setItem('access',access)
-        localStorage.setItem('refresh',refresh)
+
+        if (rememberMe) {
+          
+          localStorage.setItem('access',access)
+          localStorage.setItem('refresh',refresh)
+  
+        }else{
+          sessionStorage.setItem('access')
+          sessionStorage.setItem('refresh')
+        }
 
         toast.success("Login successfull")
         navigate("/profile")
@@ -99,6 +111,20 @@ const Login = () => {
                   />
                 </div>
 
+                <div className="mb-3 form-check">
+                    <input
+                      type="checkbox"
+                      className="form-check-input"
+                      id="rememberMe"
+                      checked={rememberMe}
+                      onChange={() => setRememberMe(!rememberMe)}
+                    />
+                    <label className="form-check-label" htmlFor="rememberMe">
+                      Remember Me
+                    </label>
+                  </div>
+
+
                 <button type="submit" className="btn btn-primary" disabled={loading}>
                   {loading ? 'Logging in...' : 'Login'}
                 </button>
@@ -110,7 +136,7 @@ const Login = () => {
                     <span 
                       className="text-primary" 
                       style={{ cursor: 'pointer' }} 
-                      onClick={() => navigate('/')}
+                      onClick={() => navigate('/signup')}
                     >
                       Register
                     </span>

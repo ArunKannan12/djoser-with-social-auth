@@ -13,13 +13,13 @@ function App() {
     <Router>
   <ToastContainer />
   <Routes>
-    <Route path="/" element={<Signup />} />
+    <Route path="/" element={<Login />} />
     <Route path="/activation/:uid/:token" element={<ActivateAccount />} />
     <Route path='/verify-email' element={<VerifyEmail/>}/>
-    <Route path="/login" element={<Login />} />
+    <Route path="/signup" element={<Signup />} />
     <Route path="/profile" element={<Profile />} />
     <Route path="/forgot-password" element={<ForgotPassword />} />
-    <Route path="/password-reset-confirm/:uid/:token" element={<ResetPassword />} />
+    <Route path="/reset-password" element={<ResetPassword />} />
   </Routes>
 </Router>
 

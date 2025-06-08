@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
-
+from django.conf import settings
 
 AUTH_PROVIDERS = {
     'email': 'Email',
@@ -43,7 +43,7 @@ class CustomUserManager(BaseUserManager):
 def user_profile_upload_path(instance, filename):
     return f'profile_pics/{instance.email}/{filename}'
 
-
+    
 class CustomUser(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=30)
@@ -59,6 +59,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     social_auth_pro_pic=models.URLField(blank=True,null=True)
     custom_user_profile=models.ImageField( upload_to=user_profile_upload_path,blank=True,null=True)
+
+    phone_number = models.CharField(max_length=15, blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    pincode = models.CharField(max_length=10, blank=True, null=True)
+    district = models.CharField(max_length=100, blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True)
+    state = models.CharField(max_length=100, blank=True, null=True)
     
     last_activation_email_sent = models.DateTimeField(null=True, blank=True)
     blocked_until = models.DateTimeField(null=True, blank=True)

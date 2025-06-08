@@ -3,14 +3,14 @@ from rest_framework import status, generics
 from rest_framework.response import Response
 from django.conf import settings
 from .models import CustomUser,ActivationEmailLog,PasswordResetEmailLog
-
+from rest_framework import generics
 from .serializers import (ResendActivationEmailSerializer,
                             CustomPasswordResetSerializer,
                             CustomPasswordResetConfirmSerializer,
-                            FacebookLoginSerializer
+                            FacebookLoginSerializer,
+                            
                             )
 import math
-from djoser.email import ActivationEmail
 from djoser.utils import encode_uid
 from django.contrib.auth.tokens import default_token_generator
 from datetime import timedelta
@@ -26,7 +26,6 @@ from rest_framework.views import APIView
 from django.http import JsonResponse
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.conf import settings
-from djoser.views import UserViewSet
 from accounts.email import CustomActivationEmail
 from rest_framework_simplejwt.views import TokenRefreshView
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
@@ -343,7 +342,7 @@ class facebookLoginView(GenericAPIView):
 
             }
         )
-        profile_picture=None
+        social_auth_pro_pic=None
         if pic_response.status_code == 200:
             social_auth_pro_pic = pic_response.json().get("data", {}).get("url")
 
@@ -360,8 +359,8 @@ class facebookLoginView(GenericAPIView):
             user.first_name = first_name
             user.last_name = last_name
             user.auth_provider = 'facebook'
-            if profile_picture:
-                user.s = profile_picture
+            if social_auth_pro_pic:
+                user.social_auth_pro_pic = social_auth_pro_pic
             user.save()
         refresh = RefreshToken.for_user(user)
 
@@ -400,3 +399,5 @@ class CustomTokenRefreshView(TokenRefreshView):
             response.data["refresh"] = request.data["refresh"]
 
         return response
+    
+

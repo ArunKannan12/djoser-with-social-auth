@@ -168,7 +168,7 @@ const Signup = () => {
             <span
               className="text-primary"
               style={{ cursor: 'pointer' }}
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/')}
             >
               Login
             </span>
