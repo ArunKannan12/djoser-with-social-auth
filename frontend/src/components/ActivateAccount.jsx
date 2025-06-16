@@ -19,7 +19,7 @@ const ActivateAccount = () => {
                 navigate("/profile");  // Redirect to profile upon success
             } catch (error) {
                 toast.error("Activation failed:", error);
-                navigate("/login");  // Redirect to login if activation fails
+                navigate("/");  // Redirect to login if activation fails
             }
         };
         

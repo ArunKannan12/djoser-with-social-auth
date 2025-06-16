@@ -5,6 +5,7 @@ import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import VerifyEmail from "./verifyEmail";
 import ActivateAccount from "./ActivateAccount";
+import ConfirmResetPassword from "./ConfirmResetPassword";
 
 
 
@@ -16,6 +17,6 @@ export {
     VerifyEmail,
     ResetPassword,
     ActivateAccount,
-
+    ConfirmResetPassword,
     
 }

@@ -160,66 +160,68 @@ const ProfileEditModal = ({ show, onHide, user, setUser }) => {
   </Modal.Header>
 
   <Modal.Body>
-    {/* Editable fields: First Name, Last Name, Phone, Pincode */}
-    {[
-      { label: 'First Name', name: 'first_name' },
-      { label: 'Last Name', name: 'last_name' },
-      { label: 'Phone Number', name: 'phone_number', type: 'tel' },
-      { label: 'PIN Code', name: 'pincode' },
-    ].map(({ label, name, type = 'text' }) => (
-      <Form.Group className="mb-3" key={name}>
-        <Form.Label>{label}</Form.Label>
-        <Form.Control
-          name={name}
-          type={type}
-          value={form[name]}
-          onChange={handleInputChange}
-          placeholder={`Enter ${label.toLowerCase()}`}
-        />
-      </Form.Group>
-    ))}
-
-    {/* Auto-filled fields: City, District, State (Disabled) */}
-    {['city', 'district', 'state'].map((field) => (
-      <Form.Group className="mb-3" key={field}>
-        <Form.Label>{field.charAt(0).toUpperCase() + field.slice(1)}</Form.Label>
-        <Form.Control value={form[field]} disabled />
-      </Form.Group>
-    ))}
-
-    <hr />
-
-    {/* Profile Picture Upload */}
-    <Form.Group className="mb-3">
-      <Form.Label>Profile Picture</Form.Label>
-      <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
+  {/* Editable fields: First Name, Last Name, Phone, Pincode */}
+  {[
+    { label: 'First Name', name: 'first_name' },
+    { label: 'Last Name', name: 'last_name' },
+    { label: 'Phone Number', name: 'phone_number', type: 'tel' },
+    { label: 'PIN Code', name: 'pincode' },
+  ].map(({ label, name, type = 'text' }) => (
+    <Form.Group className="mb-3" key={name}>
+      <Form.Label>{label}</Form.Label>
+      <Form.Control
+        name={name}
+        type={type}
+        value={form[name]}
+        onChange={handleInputChange}
+        placeholder={`Enter ${label.toLowerCase()}`}
+      />
     </Form.Group>
+  ))}
 
-    {/* Image Preview */}
-    {imagePreview && (
-      <div className="mb-3 text-center">
-        <Image
-          src={imagePreview}
-          alt="Profile Preview"
-          roundedCircle
-          style={{ width: 120, height: 120, objectFit: 'cover' }}
-        />
-      </div>
-    )}
+  {/* Auto-filled fields: City, District, State (Disabled) */}
+  {['city', 'district', 'state'].map((field) => (
+    <Form.Group className="mb-3" key={field}>
+      <Form.Label>{field.charAt(0).toUpperCase() + field.slice(1)}</Form.Label>
+      <Form.Control value={form[field]} disabled />
+    </Form.Group>
+  ))}
 
-    {/* Delete Picture Button (only if user already has a profile picture and hasn’t selected a new one) */}
-    {user.custom_user_profile && !imageFile && (
-      <div className="text-center">
-        <Button
-          variant="danger"
-          onClick={() => setConfirmDelete(true)}
-          disabled={saving}
-        >
-          Delete Picture
-        </Button>
-      </div>
-    )}
-  </Modal.Body>
+  {/* Profile Picture Section: Only show if NOT social login */}
+  {!user.social_auth_pro_pic && (
+    <>
+      <hr />
+      <Form.Group className="mb-3">
+        <Form.Label>Profile Picture</Form.Label>
+        <Form.Control type="file" accept="image/*" onChange={handleImageChange} />
+      </Form.Group>
+
+      {imagePreview && (
+        <div className="mb-3 text-center">
+          <Image
+            src={imagePreview}
+            alt="Profile Preview"
+            roundedCircle
+            style={{ width: 120, height: 120, objectFit: 'cover' }}
+          />
+        </div>
+      )}
+
+      {user.custom_user_profile && !imageFile && (
+        <div className="text-center">
+          <Button
+            variant="danger"
+            onClick={() => setConfirmDelete(true)}
+            disabled={saving}
+          >
+            Delete Picture
+          </Button>
+        </div>
+      )}
+    </>
+  )}
+</Modal.Body>
+
 
   <Modal.Footer>
     <Button variant="secondary" onClick={handleClose} disabled={saving}>

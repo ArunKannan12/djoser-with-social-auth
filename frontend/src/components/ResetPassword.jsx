@@ -3,14 +3,21 @@ import { Modal,Button,Form,Spinner,Container,Card } from 'react-bootstrap'
 import { toast } from 'react-toastify'
 import axiosInstance from '../utils/axiosInstance'
 import { Link, useNavigate } from 'react-router-dom'
-
+import {FaEye,FaEyeSlash} from 'react-icons/fa'
 const ResetPassword = () =>{
   const [form,setForm] = useState({
     current_password:'',
     new_password:'',
     re_new_password:''
   })
-
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const toggleVisibility = (field) => {
+    setShowPassword((prev) => ({ ...prev, [field]: !prev[field] }));
+  };
   const [loading,setLoading] = useState(false)
   const navigate = useNavigate();
 
@@ -27,11 +34,12 @@ const ResetPassword = () =>{
     }
 
     setLoading(true)
+    setShowPassword(true)
 
     try{
-      const res = await axiosInstance.post('auth/users/set_password',form)
-      toast.success("password reset successfull")
+      const res = await axiosInstance.post('auth/users/set_password/',form)
       navigate('/profile')
+      toast.success("password reset successfull")
 
     }catch(error){
       const data = error.response?.data || {};
@@ -58,47 +66,86 @@ const handleBackClick = () => {
       <Card className="p-4 shadow" style={{ maxWidth: '500px', width: '100%' }}>
         <h4 className="mb-4 text-center">Reset Password</h4>
         <Form onSubmit={handleSubmit}>
-          <Form.Group controlId="currentPassword" className="mb-3">
+
+          {/* Current Password */}
+          <Form.Group controlId="currentPassword" className="mb-3 position-relative">
             <Form.Label>Current Password</Form.Label>
             <Form.Control
-              type="password"
+              type={showPassword.current ? 'text' : 'password'}
               name="current_password"
               value={form.current_password}
               onChange={handleChange}
               required
               minLength={8}
             />
+            <span
+              onClick={() => toggleVisibility('current')}
+              style={{
+                position: 'absolute',
+                top: '38px',
+                right: '10px',
+                cursor: 'pointer',
+                color: '#6c757d'
+              }}
+            >
+              {showPassword.current ? <FaEyeSlash /> : <FaEye />}
+            </span>
           </Form.Group>
 
-          <Form.Group controlId="newPassword" className="mb-3">
+          {/* New Password */}
+          <Form.Group controlId="newPassword" className="mb-3 position-relative">
             <Form.Label>New Password</Form.Label>
             <Form.Control
-              type="password"
+              type={showPassword.new ? 'text' : 'password'}
               name="new_password"
               value={form.new_password}
               onChange={handleChange}
               required
               minLength={8}
             />
+            <span
+              onClick={() => toggleVisibility('new')}
+              style={{
+                position: 'absolute',
+                top: '38px',
+                right: '10px',
+                cursor: 'pointer',
+                color: '#6c757d'
+              }}
+            >
+              {showPassword.new ? <FaEyeSlash /> : <FaEye />}
+            </span>
           </Form.Group>
 
-          <Form.Group controlId="reNewPassword" className="mb-4">
+          {/* Confirm New Password */}
+          <Form.Group controlId="reNewPassword" className="mb-4 position-relative">
             <Form.Label>Confirm New Password</Form.Label>
             <Form.Control
-              type="password"
+              type={showPassword.confirm ? 'text' : 'password'}
               name="re_new_password"
               value={form.re_new_password}
               onChange={handleChange}
               required
               minLength={8}
             />
+            <span
+              onClick={() => toggleVisibility('confirm')}
+              style={{
+                position: 'absolute',
+                top: '38px',
+                right: '10px',
+                cursor: 'pointer',
+                color: '#6c757d'
+              }}
+            >
+              {showPassword.confirm ? <FaEyeSlash /> : <FaEye />}
+            </span>
           </Form.Group>
 
           <div className="d-grid">
             <Button variant="primary" type="submit" disabled={loading}>
               {loading ? <Spinner animation="border" size="sm" /> : 'Reset Password'}
             </Button>
-            
           </div>
         </Form>
 

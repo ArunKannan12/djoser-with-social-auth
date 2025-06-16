@@ -13,8 +13,9 @@ const axiosInstance = axios.create({
 
 axiosInstance.interceptors.request.use(
   async (req) => {
-    const access = localStorage.getItem('access');
-    const refresh = localStorage.getItem('refresh');
+    const access = localStorage.getItem('access') || sessionStorage.getItem('access');
+    const refresh = localStorage.getItem('refresh') || sessionStorage.getItem('refresh');
+
 
     if (!access || !refresh) {
       return req;
@@ -40,9 +41,11 @@ axiosInstance.interceptors.request.use(
       console.log('New access token:', newAccess);
 
       // Store new access token
-      localStorage.setItem("access", newAccess);
+      const useStorage = localStorage.getItem('access') ? localStorage : sessionStorage
+
+      useStorage.setItem('access',newAccess)
       if (newRefresh) {
-        localStorage.setItem('refresh',newRefresh)
+        useStorage.setItem('refresh',newRefresh)
       }
       req.headers = req.headers || {};
       req.headers.Authorization = `Bearer ${newAccess}`;
@@ -68,7 +71,7 @@ axiosInstance.interceptors.request.use(
       localStorage.removeItem("refresh");
       localStorage.removeItem("user");
 
-      window.location.href = '/login';
+      window.location.href = '/';
 
       return Promise.reject(error);
     }

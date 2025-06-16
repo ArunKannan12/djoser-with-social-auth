@@ -202,6 +202,7 @@ DJOSER = {
     "EMAIL": {
         "activation": "accounts.email.CustomActivationEmail",
         "resend_activation": "accounts.email.CustomResendActivationEmail",
+        'password_reset': 'accounts.email.CustomPasswordResetEmail',
     },
     'SEND_ACTIVATION_EMAIL': True,
     'USER_CREATE_PASSWORD_RETYPE': True,
@@ -220,7 +221,8 @@ DJOSER = {
         'password_change': 'accounts.serializers.CustomPasswordChangeSerializer',
         'user': 'accounts.serializers.UserSerializer',
         'user_delete': 'djoser.serializers.UserDeleteSerializer',
-        'current_user': 'accounts.serializers.UserSerializer'
+        'current_user': 'accounts.serializers.UserSerializer',
+        "set_password": "accounts.serializers.CustomSetPasswordSerializer",
     },
 }
 

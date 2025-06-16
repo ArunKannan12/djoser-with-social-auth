@@ -1,4 +1,4 @@
-from djoser.serializers import PasswordResetConfirmSerializer
+from djoser.serializers import PasswordResetConfirmSerializer,SetPasswordSerializer
 from .models import CustomUser
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
@@ -7,9 +7,8 @@ from django.utils.encoding import force_bytes,force_str
 from django.utils.http import urlsafe_base64_encode,urlsafe_base64_decode
 from django.template.loader import render_to_string
 from django.core.mail import send_mail
-from djoser.email import ActivationEmail
 from django.contrib.auth.password_validation import validate_password
-import json
+from accounts.email import CustomPasswordResetEmail
 
 User=get_user_model()
 
@@ -121,17 +120,15 @@ class CustomPasswordResetSerializer(serializers.Serializer):
         token = default_token_generator.make_token(user)
 
         # Prepare email content
-        context = {
-            'user': user,
-            'uid': uid,
-            'token': token,
-            'protocol': 'https' if request.is_secure() else 'http',
-            'domain': request.get_host(),
-        }
-
-        subject = 'Password Reset Requested'
-        message = render_to_string('accounts/password_reset_email.html', context)
-        send_mail(subject, message, None, [user.email])
+        email_sender = CustomPasswordResetEmail(
+            context={
+                'user':user,
+                'uid':uid,
+                'token':token,
+                'request':request
+            }
+        )
+        email_sender.send(to=[user.email])
 
 
 class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
@@ -139,8 +136,8 @@ class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
         uid = attrs.get('uid')
         token = attrs.get('token')
         new_password = attrs.get('new_password')
-        try:
 
+        try:
             uid = force_str(urlsafe_base64_decode(uid))
             self.user = User.objects.get(pk=uid)
         except (User.DoesNotExist, ValueError, TypeError, OverflowError):
@@ -151,16 +148,43 @@ class CustomPasswordResetConfirmSerializer(PasswordResetConfirmSerializer):
 
         if self.user.check_password(new_password):
             raise serializers.ValidationError("New password cannot be the same as the old password")
+
+        # ✅ Enforce Django's built-in password validators
+        validate_password(new_password, self.user)
+
         return attrs
 
-    
     def save(self):
         password = self.validated_data['new_password']
         self.user.set_password(password)
         self.user.save()
         return self.user
     
+class CustomSetPasswordSerializer(SetPasswordSerializer):
+    def validate(self, attrs):
+        user = self.context['request'].user
 
+        old_password = attrs.get("current_password")
+        new_password = attrs.get("new_password")
+
+        # Check if old password is correct
+        if not user.check_password(old_password):
+            raise serializers.ValidationError({"current_password": "Old password is incorrect."})
+
+        # Prevent reuse of the old password
+        if old_password == new_password:
+            raise serializers.ValidationError({"new_password": "New password cannot be the same as the old password."})
+
+        # Validate new password against Django validators
+        validate_password(new_password, user)
+
+        return attrs
+
+    def save(self, **kwargs):
+        password = self.validated_data["new_password"]
+        self.user.set_password(password)
+        self.user.save()
+        return self.user
 
 class FacebookLoginSerializer(serializers.Serializer):
     access_token = serializers.CharField(write_only=True)

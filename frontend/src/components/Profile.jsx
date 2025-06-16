@@ -4,6 +4,7 @@ import axiosInstance from '../utils/axiosInstance';
 import { toast } from 'react-toastify';
 import { FaPen } from 'react-icons/fa';
 import ProfileEditModal from './ProfileEditModal';
+import DarkModeToggle from '../utils/DarkModeToggle';
 import {
   Container,
   Row,
@@ -29,7 +30,7 @@ const Profile = () => {
       } catch (error) {
         console.error('Profile fetch failed:', error);
         localStorage.clear();
-        navigate('/login');
+        navigate('/');
       }
     };
     fetchProfile();
@@ -72,86 +73,95 @@ const Profile = () => {
 
   return (
     <>
+    <DarkModeToggle/>
       <Container fluid className="vh-100 d-flex flex-column flex-md-row p-0">
         {/* Sidebar */}
+        {/* Sidebar */}
+<Col
+  xs="auto"
+  className={`bg-white border-end p-3 d-flex flex-column align-items-center ${
+    sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'
+  }`}
+  style={{ transition: 'width 0.3s ease' }}
+>
+  {/* Toggle Button */}
+  <Button
+    variant="outline-primary"
+    size="sm"
+    onClick={toggleSidebar}
+    className="mb-3"
+    aria-label="Toggle sidebar"
+  >
+    &#9776;
+  </Button>
+
+  {/* Show rest of sidebar only if open */}
+  {sidebarOpen && (
+    <>
+      {/* Profile Picture with edit icon */}
+      <div
+        className="position-relative mb-3"
+        style={{ width: 120, height: 120, cursor: 'pointer' }}
+        onClick={() => setShowModal(true)}
+        title="Edit Profile"
+      >
+        <Image
+          src={profilePic}
+          roundedCircle
+          fluid
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
         <div
-          className={`bg-white border-end d-flex flex-column align-items-center p-3 ${
-            sidebarOpen ? 'sidebar-expanded' : 'sidebar-collapsed'
-          }`}
-          style={{ transition: 'width 0.3s ease' }}
+          className="position-absolute bg-primary text-white d-flex justify-content-center align-items-center"
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            bottom: 8,
+            right: 8,
+            boxShadow: '0 0 6px rgba(0,0,0,0.15)',
+          }}
         >
-          <Button
-            variant="outline-primary"
-            size="sm"
-            onClick={toggleSidebar}
-            className="mb-3 w-100"
-            aria-label="Toggle sidebar"
-          >
-            &#9776;
-          </Button>
-
-          <div
-            className="position-relative mb-3"
-            style={{ cursor: 'pointer', width: sidebarOpen ? 120 : 50, height: sidebarOpen ? 120 : 50 }}
-            onClick={() => setShowModal(true)}
-            title="Edit Profile"
-          >
-            <Image
-              src={profilePic}
-              roundedCircle
-              fluid
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-            <div
-              className="position-absolute bg-primary text-white d-flex justify-content-center align-items-center"
-              style={{
-                width: sidebarOpen ? 32 : 20,
-                height: sidebarOpen ? 32 : 20,
-                borderRadius: '50%',
-                bottom: 8,
-                right: 8,
-                boxShadow: '0 0 6px rgba(0,0,0,0.15)',
-              }}
-            >
-              <FaPen size={sidebarOpen ? 16 : 12} />
-            </div>
-          </div>
-
-          <Collapse in={sidebarOpen}>
-            <div className="text-center w-100">
-              <h5 className="mb-0">{user.first_name} {user.last_name}</h5>
-              <small className="text-muted d-block mb-3">{user.email}</small>
-                <Button
-            variant="outline-primary"
-            size="sm"
-            onClick={handleBackClick}
-            className="mb-2 w-75 "
-            disabled={backLoading}
-          >
-            {backLoading ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" /> Just a sec...
-              </>
-            ) : (
-              'Forgot Password'
-            )}
-          </Button>
-
-                             
-              <Button
-                variant="danger"
-                size="sm"
-                className="w-75"
-                onClick={handleLogout}
-              >
-                Logout
-              </Button>
-            </div>
-          </Collapse>
+          <FaPen size={16} />
         </div>
+      </div>
+
+      {/* User Info and Buttons */}
+      <div className="text-center w-100">
+        <h5 className="mb-0">{user.first_name} {user.last_name}</h5>
+        <small className="text-muted d-block mb-3">{user.email}</small>
+        <Button
+          variant="outline-primary"
+          size="sm"
+          onClick={handleBackClick}
+          className="mb-2 w-75"
+          disabled={backLoading}
+        >
+          {backLoading ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" /> Just a sec...
+            </>
+          ) : (
+            'Forgot Password'
+          )}
+        </Button>
+
+        <Button
+          variant="danger"
+          size="sm"
+          className="w-75"
+          onClick={handleLogout}
+        >
+          Logout
+        </Button>
+      </div>
+    </>
+  )}
+</Col>
 
         {/* Main content */}
-        <main className="flex-grow-1 overflow-auto p-4" style={{ backgroundColor: '#f8f9fa' }}>
+        <main className="flex-grow-1 overflow-auto p-4 main-content">
+
           <h2 className="mb-4 text-primary fw-bold">Profile Details</h2>
           <div
             className="bg-white rounded shadow-sm p-4 mx-auto"

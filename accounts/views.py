@@ -170,6 +170,12 @@ class CustomPasswordResetView(generics.GenericAPIView):
             user = CustomUser.objects.get(email=email)
         except CustomUser.DoesNotExist:
             return Response({'email': 'User with this email does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if user.auth_provider.lower() != 'email':
+            return Response(
+                {'detail': f"Password reset is not allowed for users signed up with {user.auth_provider.title()}."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         now = timezone.now()
 

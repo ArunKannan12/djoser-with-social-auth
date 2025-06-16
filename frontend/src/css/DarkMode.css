@@ -1,0 +1,105 @@
+/* Dark mode background & text */
+body.dark-mode {
+  background-color: #121212;
+  color: #e0e0e0;
+}
+.main-content {
+  background-color: #f8f9fa; /* light mode bg */
+  color: #000; /* light mode text */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body.dark-mode .main-content {
+  background-color: #1e1e1e; /* dark mode bg */
+  color: #e0e0e0; /* dark mode text */
+}
+
+/* Apply dark background to root and layout containers */
+body.dark-mode html,
+body.dark-mode body,
+body.dark-mode #root {
+  background-color: #121212;
+  color: #e0e0e0;
+  height: 100%;
+}
+
+/* Toggle switch style */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 80px;
+  height: 36px;
+  font-size: 14px;
+  user-select: none;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  color: #000;
+  border-radius: 34px;
+  transition: background-color 0.4s, color 0.4s;
+  text-align: center;
+  line-height: 36px;
+  font-weight: bold;
+  padding-left: 8px;
+}
+
+.slider:before {
+  content: "";
+  position: absolute;
+  height: 28px;
+  width: 28px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.4s;
+}
+
+.switch input:checked + .slider {
+  background-color: #333;
+  color: white;
+}
+
+.switch input:checked + .slider:before {
+  transform: translateX(44px);
+}
+
+/* Optional: other elements in dark mode */
+body.dark-mode .card,
+body.dark-mode .container,
+body.dark-mode .content,
+body.dark-mode .sidebar,
+body.dark-mode .navbar {
+  background-color: #1e1e1e !important;
+  color: #e0e0e0 !important;
+}
+
+body.dark-mode button {
+  background-color: #333;
+  color: #eee;
+  border: 1px solid #555;
+}
+
+body.dark-mode input,
+body.dark-mode textarea,
+body.dark-mode select {
+  background-color: #222;
+  color: #ddd;
+  border: 1px solid #444;
+}
+
+body.dark-mode a {
+  color: #80cbc4;
+}
