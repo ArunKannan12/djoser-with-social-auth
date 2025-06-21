@@ -78,7 +78,7 @@ const FacebookAuth = () => {
 
               localStorage.setItem('access', res.data.access_token);
               localStorage.setItem('refresh', res.data.refresh_token);
-              localStorage.setItem('provider', 'facebook');
+              
 
               toast.success('✅ Logged in successfully!');
               navigate('/profile');
