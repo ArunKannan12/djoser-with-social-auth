@@ -6,6 +6,7 @@ import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import {FaEye,FaEyeSlash} from 'react-icons/fa'
 import GoogleAuth from './GoogleAuth';
+import FacebookAuth from './FacebookAuth';
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -156,6 +157,7 @@ const Login = () => {
 
                     <GoogleAuth/>
                     <br />
+                    <FacebookAuth/>
                 <div className="text-center mt-3">
                   <p className="text-muted">
                     Don't have an account?{' '}
