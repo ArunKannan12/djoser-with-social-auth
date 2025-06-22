@@ -20,29 +20,28 @@ const Login = () => {
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const { email, password } = loginData;
 
-  useEffect(() => {
-    const accessToken = localStorage.getItem('access');
-    if (accessToken) {
-      try {
-        const decoded = jwtDecode(accessToken);
-        const currentTime = Date.now() / 1000;
-        if (decoded.exp > currentTime) {
-          navigate('/profile');
-        } else {
-          localStorage.removeItem('access');
-          localStorage.removeItem('refresh');
-          sessionStorage.removeItem('access');
-          sessionStorage.removeItem('refresh');
-        }
-      } catch (error) {
-        console.error('Invalid token:', error);
-        localStorage.removeItem('access');
-        localStorage.removeItem('refresh');
-        sessionStorage.removeItem('access');
-        sessionStorage.removeItem('refresh');
+useEffect(() => {
+  const accessToken =
+    localStorage.getItem('access') || sessionStorage.getItem('access');
+
+  if (accessToken) {
+    try {
+      const decoded = jwtDecode(accessToken);
+      const currentTime = Date.now() / 1000;
+
+      if (decoded.exp > currentTime) {
+        navigate('/profile');
+      } else {
+        localStorage.clear();
+        sessionStorage.clear();
       }
+    } catch (error) {
+      console.error('Invalid token:', error);
+      localStorage.clear();
+      sessionStorage.clear();
     }
-  }, [navigate]);
+  }
+}, [navigate]);
 
   const handleOnChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -51,8 +50,6 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setShowPassword(true);
-
     try {
       const response = await axios.post('http://localhost:8000/api/auth/jwt/create/', loginData);
       const { access, refresh } = response.data;

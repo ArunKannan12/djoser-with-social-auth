@@ -14,6 +14,9 @@ import {
   Spinner,
   Collapse,
 } from 'react-bootstrap';
+import { jwtDecode } from 'jwt-decode';
+import dayjs from 'dayjs';
+import { refreshAccessToken } from '../utils/refreshAccessToken';
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -22,28 +25,56 @@ const Profile = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        const res = await axiosInstance.get('auth/users/me/');
-        setUser(res.data);
-      } catch (error) {
-        console.error('Profile fetch failed:', error);
-        localStorage.clear();
-        navigate('/');
+ useEffect(() => {
+  const fetchProfile = async () => {
+    try {
+      // 🔒 Use fallback from sessionStorage if localStorage is empty
+      const access = localStorage.getItem("access") || sessionStorage.getItem("access");
+      const refresh = localStorage.getItem("refresh") || sessionStorage.getItem("refresh");
+
+      if (!access || !refresh) {
+        console.warn('Missing tokens');
+        navigate("/");
+        return;
       }
-    };
-    fetchProfile();
-  }, [navigate]);
+
+      const decoded = jwtDecode(access);
+      const isExpired = dayjs.unix(decoded.exp).diff(dayjs()) < 0;
+
+      if (isExpired) {
+        console.log("Access token expired. Refreshing...");
+        const newAccess = await refreshAccessToken();
+        if (!newAccess) {
+          navigate("/");
+          return;
+        }
+      }
+
+      const res = await axiosInstance.get('auth/users/me/');
+      setUser(res.data);
+    } catch (error) {
+      console.error("Profile fetch failed:", error);
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate("/");
+    }
+  };
+
+  fetchProfile();
+}, [navigate]);
 
   const handleLogout = async () => {
+    const refresh =
+localStorage.getItem('refresh') || sessionStorage.getItem('refresh');
     try {
-      const refresh = localStorage.getItem('refresh');
+        if (refresh) {
       await axiosInstance.post('auth/jwt/logout/', { refresh });
+    }
     } catch {
       // ignore
     }
     localStorage.clear();
+    sessionStorage.clear();
     toast.info('Logged out successfully');
     navigate('/');
   };

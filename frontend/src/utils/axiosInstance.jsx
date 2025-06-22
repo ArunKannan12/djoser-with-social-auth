@@ -67,9 +67,9 @@ axiosInstance.interceptors.request.use(
         console.error("Logout failed:", logoutError);
       }
 
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-      localStorage.removeItem("user");
+      localStorage.clear();
+      sessionStorage.clear();
+
 
       window.location.href = '/';
 
